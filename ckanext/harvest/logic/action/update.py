@@ -17,7 +17,7 @@ from ckan.lib.search.common import SearchIndexError, make_connection
 
 from ckan.model import Package
 from ckan import logic
-from ckan.plugins.toolkit import check_ckan_version
+import ckan.plugins.toolkit
 
 from ckan.logic import NotFound, check_access
 
@@ -114,12 +114,12 @@ def harvest_source_clear(context,data_dict):
         ids.append(row[0])
     related_ids = "('" + "','".join(ids) + "')"
 
-    sql = '''begin; 
+    sql = '''begin;
     update package set state = 'to_delete' where id in (select package_id from harvest_object where harvest_source_id = '{harvest_source_id}');'''.format(
         harvest_source_id=harvest_source_id)
 
     # CKAN-2.3 or above: delete resource views, resource revisions & resources
-    if check_ckan_version(min_version='2.3'):
+    if ckan.plugins.toolkit.check_ckan_version(min_version='2.3'):
         sql += '''
         delete from resource_view where resource_id in (select id from resource where package_id in (select id from package where state = 'to_delete' ));
         delete from resource_revision where package_id in (select id from package where state = 'to_delete' );
@@ -128,15 +128,15 @@ def harvest_source_clear(context,data_dict):
     # Backwards-compatibility: support ResourceGroup (pre-CKAN-2.3)
     else:
         sql += '''
-        delete from resource_revision where resource_group_id in 
-        (select id from resource_group where package_id in 
+        delete from resource_revision where resource_group_id in
+        (select id from resource_group where package_id in
         (select id from package where state = 'to_delete'));
-        delete from resource where resource_group_id in 
-        (select id from resource_group where package_id in 
+        delete from resource where resource_group_id in
+        (select id from resource_group where package_id in
         (select id from package where state = 'to_delete'));
-        delete from resource_group_revision where package_id in 
+        delete from resource_group_revision where package_id in
         (select id from package where state = 'to_delete');
-        delete from resource_group where package_id  in 
+        delete from resource_group where package_id  in
         (select id from package where state = 'to_delete');
         '''
     sql += '''
