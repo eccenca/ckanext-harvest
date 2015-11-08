@@ -54,6 +54,43 @@ class HarvesterBase(SingletonPlugin):
         else:
             return name
 
+    def _get_user_name(self):
+        '''
+        Returns the name of the user that will perform the harvesting actions
+        (deleting, updating and creating datasets)
+        By default this will be the old 'harvest' user to maintain
+        compatibility. If not present, the internal site admin user will be
+        used. This is the recommended setting, but if necessary it can be
+        overridden with the `ckanext.harvest.user_name` config option:
+           ckanext.harvest.user_name = harvest
+        '''
+        if self._user_name:
+            return self._user_name
+
+        config_user_name = config.get('ckanext.harvest.user_name')
+        if config_user_name:
+            self._user_name = config_user_name
+            return self._user_name
+
+        context = {'model': model,
+                   'ignore_auth': True,
+                   }
+
+        # Check if 'harvest' user exists and if is a sysadmin
+        try:
+            user_harvest = p.toolkit.get_action('user_show')(
+                context, {'id': 'harvest'})
+            if user_harvest['sysadmin']:
+                self._user_name = 'harvest'
+                return self._user_name
+        except p.toolkit.ObjectNotFound:
+            pass
+
+        context['defer_commit'] = True  # See ckan/ckan#1714
+        self._site_user = p.toolkit.get_action('get_site_user')(context, {})
+        self._user_name = self._site_user['name']
+
+        return self._user_name
 
     def _save_gather_error(self, message, job):
         err = HarvestGatherError(message=message, job=job)
