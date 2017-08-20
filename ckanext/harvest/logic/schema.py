@@ -33,7 +33,7 @@ def harvest_source_schema():
     schema = {
         'id': [ignore_missing, unicode, package_id_exists],
         'type': [dataset_type_exists, unicode],
-        'url': [not_empty, unicode, harvest_source_url_validator],
+        'url': [not_empty, unicode],
         'name': [not_empty, unicode, name_validator, package_name_validator],
         'source_type': [not_empty, unicode, harvest_source_type_exists, convert_to_extras],
         'title': [if_empty_same_as("name"), unicode],
@@ -108,4 +108,3 @@ def harvest_object_create_schema():
         'extras': [ignore_missing, harvest_object_extras_validator],
     }
     return schema
-
